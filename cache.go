@@ -67,13 +67,13 @@ func (ec *Cache) Set(k string, v interface{}, size uint64, expire int32) {
 	ec.cache[k] = element{validUntil: timeNow().Add(time.Duration(expire) * time.Second), data: v, size: size}
 
 	for ec.maxSize > 0 && ec.totalSize > ec.maxSize {
-		ec.RandomEvict()
+		ec.randomEvict()
 	}
 
 	ec.Unlock()
 }
 
-func (ec *Cache) RandomEvict() {
+func (ec *Cache) randomEvict() {
 	slot := rand.Intn(len(ec.keys))
 	k := ec.keys[slot]
 
