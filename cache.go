@@ -116,6 +116,47 @@ func (ec *Cache) Cleaner(d time.Duration) {
 	}
 }
 
+func (ec *Cache) ApproximateCleaner(d time.Duration) {
+
+	// every iteration, sample and clean this many items
+	const sampleSize = 20
+	// if we cleaned at least this many, run the loop again
+	const rerunCount = 5
+
+	for {
+		cleanerSleep(d)
+
+		now := timeNow()
+
+		// probabilistic expiration algorithm from redis
+		for {
+			var cleaned int
+			// by doing short iterations and releasing the lock in between, we don't block other requests from progressing.
+			ec.Lock()
+			for i := 0; len(ec.keys) > 0 && i < sampleSize; i++ {
+				idx := rand.Intn(len(ec.keys))
+				k := ec.keys[idx]
+				v := ec.cache[k]
+				if v.validUntil.Before(now) {
+					ec.totalSize -= v.size
+					delete(ec.cache, k)
+
+					ec.keys[idx] = ec.keys[len(ec.keys)-1]
+					ec.keys = ec.keys[:len(ec.keys)-1]
+					cleaned++
+				}
+			}
+			ec.Unlock()
+			if cleaned < rerunCount {
+				// "clean enough"
+				break
+			}
+		}
+
+		cleanerDone()
+	}
+}
+
 var (
 	timeNow      = time.Now
 	cleanerSleep = time.Sleep
