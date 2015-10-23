@@ -25,9 +25,9 @@ func TestCacheExpire(t *testing.T) {
 
 	timeNow = func() time.Time { return t0 }
 
-	c.Set("foo", []byte("bar"), 30)
-	c.Set("baz", []byte("qux"), 60)
-	c.Set("zot", []byte("bork"), 120)
+	c.Set("foo", []byte("bar"), 3, 30)
+	c.Set("baz", []byte("qux"), 3, 60)
+	c.Set("zot", []byte("bork"), 4, 120)
 
 	type expireTest struct {
 		key string
@@ -48,7 +48,7 @@ func TestCacheExpire(t *testing.T) {
 		b, ok := c.Get(p.key)
 
 		if ok != p.ok || (ok != (b != nil)) {
-			t.Errorf("expireCache: bad unexpired cache.Get(%v)=(%v,%v), want %v", p.key, string(b), ok, p.ok)
+			t.Errorf("expireCache: bad unexpired cache.Get(%v)=(%v,%v), want %v", p.key, string(b.([]byte)), ok, p.ok)
 		}
 	}
 
@@ -60,7 +60,7 @@ func TestCacheExpire(t *testing.T) {
 		t.Errorf("unexpired cache size mismatch: got %d, want %d", c.totalSize, 3+3+4)
 	}
 
-	c.Set("baz", []byte("snork"), 60)
+	c.Set("baz", []byte("snork"), 5, 60)
 
 	if len(c.keys) != 3 {
 		t.Errorf("unexpired extra keys array length mismatch: got %d, want %d", len(c.keys), 3)
@@ -82,7 +82,7 @@ func TestCacheExpire(t *testing.T) {
 	for _, p := range present {
 		b, ok := c.Get(p.key)
 		if ok != p.ok || (ok != (b != nil)) {
-			t.Errorf("expireCache: bad partial expire cache.Get(%v)=(%v,%v), want %v", p.key, string(b), ok, p.ok)
+			t.Errorf("expireCache: bad partial expire cache.Get(%v)=(%v,%v), want %v", p.key, string(b.([]byte)), ok, p.ok)
 		}
 	}
 
@@ -100,7 +100,7 @@ func TestCacheExpire(t *testing.T) {
 	for _, p := range present {
 		b, ok := c.Get(p.key)
 		if ok != p.ok || (ok != (b != nil)) {
-			t.Errorf("expireCache: bad partial expire cache.Get(%v)=(%v,%v), want %v", p.key, string(b), ok, p.ok)
+			t.Errorf("expireCache: bad partial expire cache.Get(%v)=(%v,%v), want %v", p.key, string(b.([]byte)), ok, p.ok)
 		}
 	}
 
