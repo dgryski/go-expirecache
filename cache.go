@@ -13,7 +13,7 @@ type element struct {
 }
 
 type Cache struct {
-	sync.Mutex
+	sync.RWMutex
 	cache     map[string]element
 	keys      []string
 	totalSize uint64
@@ -28,23 +28,23 @@ func New(maxSize uint64) *Cache {
 }
 
 func (ec *Cache) Size() uint64 {
-	ec.Lock()
+	ec.RLock()
 	s := ec.totalSize
-	ec.Unlock()
+	ec.RUnlock()
 	return s
 }
 
 func (ec *Cache) Items() int {
-	ec.Lock()
+	ec.RLock()
 	k := len(ec.keys)
-	ec.Unlock()
+	ec.RUnlock()
 	return k
 }
 
 func (ec *Cache) Get(k string) (interface{}, bool) {
-	ec.Lock()
+	ec.RLock()
 	v, ok := ec.cache[k]
-	ec.Unlock()
+	ec.RUnlock()
 	if !ok || v.validUntil.Before(timeNow()) {
 		// Can't actually delete this element from the cache here since
 		// we can't remove the key from ec.keys without a linear search.
