@@ -12,6 +12,7 @@ type element struct {
 	size       uint64
 }
 
+// Cache is an expiring cache.  It is safe for
 type Cache struct {
 	sync.RWMutex
 	cache     map[string]element
@@ -20,6 +21,7 @@ type Cache struct {
 	maxSize   uint64
 }
 
+// New creates a new cache with a maximum memory size
 func New(maxSize uint64) *Cache {
 	return &Cache{
 		cache:   make(map[string]element),
@@ -27,6 +29,7 @@ func New(maxSize uint64) *Cache {
 	}
 }
 
+// Size returns the current memory size of the cache
 func (ec *Cache) Size() uint64 {
 	ec.RLock()
 	s := ec.totalSize
@@ -34,6 +37,7 @@ func (ec *Cache) Size() uint64 {
 	return s
 }
 
+// Items returns the number of items in the cache
 func (ec *Cache) Items() int {
 	ec.RLock()
 	k := len(ec.keys)
@@ -41,7 +45,8 @@ func (ec *Cache) Items() int {
 	return k
 }
 
-func (ec *Cache) Get(k string) (interface{}, bool) {
+// Get returns the item from the cache
+func (ec *Cache) Get(k string) (item interface{}, ok bool) {
 	ec.RLock()
 	v, ok := ec.cache[k]
 	ec.RUnlock()
@@ -54,6 +59,7 @@ func (ec *Cache) Get(k string) (interface{}, bool) {
 	return v.data, ok
 }
 
+// Set adds an item to the cache, with an estimated size and expiration time in seconds.
 func (ec *Cache) Set(k string, v interface{}, size uint64, expire int32) {
 	ec.Lock()
 	oldv, ok := ec.cache[k]
@@ -86,6 +92,7 @@ func (ec *Cache) randomEvict() {
 	delete(ec.cache, k)
 }
 
+// Cleaner starts a goroutine which wakes up periodically and removes all expired items from the cache.
 func (ec *Cache) Cleaner(d time.Duration) {
 
 	for {
@@ -116,6 +123,7 @@ func (ec *Cache) Cleaner(d time.Duration) {
 	}
 }
 
+// ApproximateCleaner starts a goroutine which wakes up periodically and removes a sample of expired items from the cache.
 func (ec *Cache) ApproximateCleaner(d time.Duration) {
 
 	// every iteration, sample and clean this many items
