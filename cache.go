@@ -59,9 +59,27 @@ func (ec *Cache) Get(k string) (item interface{}, ok bool) {
 	return v.data, ok
 }
 
+// GetOrSet returns the item from the cache or sets a new variable if it doesn't exist
+func (ec *Cache) GetOrSet(k string, newValue interface{}, size uint64, expire int32) (item interface{}) {
+	ec.Lock()
+	v, ok := ec.cache[k]
+	if !ok || v.validUntil.Before(timeNow()) {
+		ec.actualSet(k, newValue, size, expire)
+		ec.Unlock()
+		return newValue
+	}
+	ec.Unlock()
+	return v.data
+}
+
 // Set adds an item to the cache, with an estimated size and expiration time in seconds.
 func (ec *Cache) Set(k string, v interface{}, size uint64, expire int32) {
 	ec.Lock()
+	ec.actualSet(k, v, size, expire)
+	ec.Unlock()
+}
+
+func (ec *Cache) actualSet(k string, v interface{}, size uint64, expire int32) {
 	oldv, ok := ec.cache[k]
 	if !ok {
 		ec.keys = append(ec.keys, k)
@@ -75,8 +93,6 @@ func (ec *Cache) Set(k string, v interface{}, size uint64, expire int32) {
 	for ec.maxSize > 0 && ec.totalSize > ec.maxSize {
 		ec.randomEvict()
 	}
-
-	ec.Unlock()
 }
 
 func (ec *Cache) randomEvict() {
